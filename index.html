@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Config Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1218;
+    --surface:#161C26;
+    --surface-2:#1E2531;
+    --border:#2A3242;
+    --text:#E8ECF3;
+    --text-muted:#8A93A6;
+    --text-dim:#5C6577;
+    --brand:#5B8CFF;
+    --brand-dim:#3A5BC7;
+    --teal:#2DD9BE;
+    --teal-dim:rgba(45,217,190,0.14);
+    --amber:#F5A623;
+    --amber-dim:rgba(245,166,35,0.14);
+    --red:#FB5B5B;
+    --red-dim:rgba(251,91,91,0.16);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(91,140,255,0.08), transparent 45%),
+      radial-gradient(circle at 85% 15%, rgba(45,217,190,0.06), transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:22px 32px;border-bottom:1px solid var(--border);
+    position:sticky;top:0;background:rgba(14,18,24,0.85);backdrop-filter:blur(10px);z-index:20;
+    flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{
+    width:34px;height:34px;border-radius:9px;
+    background:linear-gradient(135deg,var(--brand),var(--teal));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;color:#0E1218;font-size:15px;
+    flex-shrink:0;
+  }
+  .brand-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;letter-spacing:0.2px;}
+  .brand-sub{font-size:12px;color:var(--text-muted);margin-top:1px;}
+
+  .topbar-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+  .search-box{
+    display:flex;align-items:center;gap:8px;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:9px 14px;min-width:230px;
+  }
+  .search-box input{
+    background:none;border:none;outline:none;color:var(--text);font-size:14px;width:100%;
+    font-family:'Inter',sans-serif;
+  }
+  .search-box input::placeholder{color:var(--text-dim);}
+  .search-box svg{flex-shrink:0;color:var(--text-dim);}
+
+  .btn{
+    border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;
+    cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-family:'Inter',sans-serif;
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:linear-gradient(135deg,var(--brand),#7AA2FF);color:#0B0F16;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+  .btn-ghost:hover{border-color:var(--brand);}
+  .btn-danger{background:var(--red-dim);color:var(--red);}
+  .btn-danger:hover{filter:brightness(1.15);}
+  .btn-sm{padding:7px 12px;font-size:12.5px;border-radius:8px;}
+
+  /* ---------- Layout ---------- */
+  .container{max-width:1280px;margin:0 auto;padding:28px 32px 80px;}
+
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px;}
+  .stat-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px;
+  }
+  .stat-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;}
+  .stat-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;}
+  .stat-card.stat-active .stat-value{color:var(--teal);}
+  .stat-card.stat-warning .stat-value{color:var(--amber);}
+  .stat-card.stat-expired .stat-value{color:var(--red);}
+
+  /* ---------- Hero: next to expire ---------- */
+  .hero{
+    background:linear-gradient(135deg, rgba(91,140,255,0.08), rgba(45,217,190,0.05));
+    border:1px solid var(--border);border-radius:18px;
+    padding:22px 26px;margin-bottom:28px;
+    display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+    position:relative;overflow:hidden;
+  }
+  .hero.is-empty{justify-content:center;}
+  .hero-eyebrow{font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+  .hero-name{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:600;margin-bottom:4px;}
+  .hero-meta{font-size:13px;color:var(--text-muted);}
+  .hero-timer{
+    font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;letter-spacing:1px;
+    color:var(--teal);
+  }
+  .hero-timer.warning{color:var(--amber);}
+  .hero-timer.expired{color:var(--red);animation:pulseText 1s infinite;}
+  .hero-timer-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px;text-align:right;}
+  @keyframes pulseText{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+  /* ---------- Filter tabs ---------- */
+  .filter-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+  .tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);padding:4px;border-radius:10px;}
+  .tab{
+    padding:7px 14px;font-size:13px;font-weight:600;border-radius:7px;cursor:pointer;color:var(--text-muted);
+    transition:all .15s ease; user-select:none;
+  }
+  .tab.active{background:var(--surface-2);color:var(--text);}
+  .tab .count{opacity:0.6;font-weight:500;margin-left:4px;}
+
+  /* ---------- Grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:18px 18px 16px;position:relative;transition:border-color .15s ease;
+  }
+  .card:hover{border-color:#39435A;}
+  .card.status-warning{border-color:rgba(245,166,35,0.4);}
+  .card.status-expired{border-color:rgba(251,91,91,0.5);}
+  .card.status-expired::before{
+    content:"";position:absolute;inset:0;border-radius:var(--radius);
+    box-shadow:0 0 0 1px rgba(251,91,91,0.3);
+    animation:cardPulse 1.6s infinite;pointer-events:none;
+  }
+  @keyframes cardPulse{0%,100%{box-shadow:0 0 0 1px rgba(251,91,91,0.15);}50%{box-shadow:0 0 0 1px rgba(251,91,91,0.55);}}
+
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:14px;}
+  .card-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;margin-bottom:3px;word-break:break-word;}
+  .card-buyer{font-size:12.5px;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+
+  .badge{
+    font-size:10.5px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;
+    padding:4px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+  }
+  .badge-active{background:var(--teal-dim);color:var(--teal);}
+  .badge-warning{background:var(--amber-dim);color:var(--amber);}
+  .badge-expired{background:var(--red-dim);color:var(--red);}
+  .badge-expired.blink{animation:pulseText 1s infinite;}
+
+  .timer-block{
+    background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-bottom:14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .timer-value{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:19px;letter-spacing:0.5px;color:var(--teal);}
+  .timer-value.warning{color:var(--amber);}
+  .timer-value.expired{color:var(--red);}
+  .timer-sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+
+  .detail-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .detail-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-size:12.5px;background:var(--surface-2);border-radius:8px;padding:7px 10px;
+  }
+  .detail-key{color:var(--text-dim);flex-shrink:0;min-width:56px;}
+  .detail-val{
+    font-family:'JetBrains Mono',monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;flex:1;text-align:right;
+  }
+  .copy-btn{
+    background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px;display:flex;flex-shrink:0;
+    border-radius:5px;
+  }
+  .copy-btn:hover{color:var(--brand);background:rgba(91,140,255,0.1);}
+
+  .card-actions{display:flex;gap:8px;}
+  .card-actions .btn{flex:1;justify-content:center;}
+
+  .empty-state{
+    text-align:center;padding:70px 20px;color:var(--text-muted);
+    grid-column:1/-1;border:1px dashed var(--border);border-radius:var(--radius);
+  }
+  .empty-state .display{font-size:17px;color:var(--text);margin-bottom:6px;}
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(6,8,12,0.65);backdrop-filter:blur(3px);
+    display:none;align-items:flex-start;justify-content:center;z-index:100;padding:5vh 16px;overflow-y:auto;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    width:100%;max-width:480px;padding:26px;
+  }
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+  .modal-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:18px;}
+  .modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;line-height:1;padding:4px;}
+  .modal-close:hover{color:var(--text);}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:6px;font-weight:600;}
+  .field input{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;
+    padding:11px 13px;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;outline:none;
+  }
+  .field input:focus{border-color:var(--brand);}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;}
+  .field-hint{font-size:11.5px;color:var(--text-dim);margin-top:5px;}
+  .modal-actions{display:flex;gap:10px;margin-top:22px;}
+  .modal-actions .btn{flex:1;justify-content:center;}
+
+  /* ---------- Toast ---------- */
+  .toast-wrap{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:200;}
+  .toast{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    padding:11px 16px;font-size:13.5px;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,0.35);
+    animation:toastIn .2s ease;
+  }
+  @keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  @media (max-width:720px){
+    .container{padding:20px 16px 60px;}
+    .stats-row{grid-template-columns:repeat(2,1fr);}
+    .topbar{padding:16px 18px;}
+    .hero{flex-direction:column;align-items:flex-start;}
+    .hero-timer-label{text-align:left;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .card.status-expired::before, .hero-timer.expired, .badge-expired.blink{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">VC</div>
+    <div>
+      <div class="brand-title">Config Manager</div>
+      <div class="brand-sub">Track expiry on every VPN config you sell</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="text" placeholder="Search by label, email or Telegram ID">
+    </div>
+    <button class="btn btn-primary" id="openAddModal">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Config
+    </button>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total configs</div>
+      <div class="stat-value" id="statTotal">0</div>
+    </div>
+    <div class="stat-card stat-active">
+      <div class="stat-label">Active</div>
+      <div class="stat-value" id="statActive">0</div>
+    </div>
+    <div class="stat-card stat-warning">
+      <div class="stat-label">Expiring soon</div>
+      <div class="stat-value" id="statWarning">0</div>
+    </div>
+    <div class="stat-card stat-expired">
+      <div class="stat-label">Expired</div>
+      <div class="stat-value" id="statExpired">0</div>
+    </div>
+  </div>
+
+  <div class="hero" id="heroPanel">
+    <div>
+      <div class="hero-eyebrow">Needs attention next</div>
+      <div class="hero-name" id="heroName">—</div>
+      <div class="hero-meta" id="heroMeta">Add your first config to start tracking expiry</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="hero-timer mono" id="heroTimer">--:--:--:--</div>
+      <div class="hero-timer-label" id="heroTimerLabel">days · hours · min · sec</div>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <div class="tabs" id="filterTabs">
+      <div class="tab active" data-filter="all">All <span class="count" id="cAll">0</span></div>
+      <div class="tab" data-filter="active">Active <span class="count" id="cActive">0</span></div>
+      <div class="tab" data-filter="warning">Expiring <span class="count" id="cWarning">0</span></div>
+      <div class="tab" data-filter="expired">Expired <span class="count" id="cExpired">0</span></div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Add Config</div>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <form id="configForm">
+      <div class="field">
+        <label for="f_label">Label (for your own reference)</label>
+        <input id="f_label" type="text" placeholder="e.g. Ali - Germany server" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="f_duration">Duration (days)</label>
+          <input id="f_duration" type="number" min="0.01" step="0.5" placeholder="30" required>
+        </div>
+        <div class="field">
+          <label for="f_telegram">Buyer Telegram ID</label>
+          <input id="f_telegram" type="text" placeholder="@username" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f_email">Config Email</label>
+        <input id="f_email" type="text" placeholder="user@example.com">
+      </div>
+      <div class="field">
+        <label for="f_password">Config Password</label>
+        <input id="f_password" type="text" placeholder="••••••••">
+      </div>
+      <div class="field">
+        <label for="f_sublink">Subscription Link</label>
+        <input id="f_sublink" type="text" placeholder="https://..." required>
+      </div>
+      <div class="field-hint" id="editHint" style="display:none;">
+        Changing the duration recalculates the expiry date from this config's original start date. Use "Renew" on the card instead if you want to restart the countdown from today.
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="submitBtn">Save Config</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const STORAGE_PREFIX = 'config:';
+let configs = [];
+let currentFilter = 'all';
+let searchTerm = '';
+let editingId = null;
+
+const DAY_MS = 24*60*60*1000;
+
+// ---------- Storage helpers ----------
+async function loadConfigs(){
+  try{
+    const listRes = await window.storage.list(STORAGE_PREFIX, false);
+    const keys = (listRes && listRes.keys) ? listRes.keys : [];
+    const results = [];
+    for(const key of keys){
+      try{
+        const r = await window.storage.get(key, false);
+        if(r && r.value) results.push(JSON.parse(r.value));
+      }catch(e){ /* skip unreadable key */ }
+    }
+    configs = results;
+  }catch(e){
+    configs = [];
+  }
+  render();
+}
+
+async function saveConfig(cfg){
+  await window.storage.set(STORAGE_PREFIX + cfg.id, JSON.stringify(cfg), false);
+}
+
+async function deleteConfigStorage(id){
+  await window.storage.delete(STORAGE_PREFIX + id, false);
+}
+
+// ---------- Status logic ----------
+function getStatus(cfg){
+  const remaining = cfg.expiresAt - Date.now();
+  if(remaining <= 0) return 'expired';
+  const totalDuration = cfg.expiresAt - cfg.createdAt;
+  const warnThreshold = Math.min(3*DAY_MS, totalDuration*0.15);
+  if(remaining <= warnThreshold) return 'warning';
+  return 'active';
+}
+
+function formatRemaining(ms){
+  if(ms <= 0) return { text: '00:00:00:00', sub: 'Expired' };
+  const totalSec = Math.floor(ms/1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  const pad = n => String(n).padStart(2,'0');
+  return { text: `${pad(days)}:${pad(hours)}:${pad(mins)}:${pad(secs)}`, sub: `${days}d ${hours}h ${mins}m ${secs}s remaining` };
+}
+
+// ---------- Toast ----------
+function toast(msg){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 2200);
+}
+
+function copyText(text, label){
+  navigator.clipboard.writeText(text).then(()=> toast(`${label} copied`)).catch(()=> toast('Could not copy'));
+}
+
+// ---------- Rendering ----------
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str == null ? '' : str;
+  return d.innerHTML;
+}
+
+function render(){
+  // stats
+  const total = configs.length;
+  let activeCount=0, warningCount=0, expiredCount=0;
+  configs.forEach(c=>{
+    const s = getStatus(c);
+    if(s==='active') activeCount++;
+    else if(s==='warning') warningCount++;
+    else expiredCount++;
+  });
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statActive').textContent = activeCount;
+  document.getElementById('statWarning').textContent = warningCount;
+  document.getElementById('statExpired').textContent = expiredCount;
+  document.getElementById('cAll').textContent = total;
+  document.getElementById('cActive').textContent = activeCount;
+  document.getElementById('cWarning').textContent = warningCount;
+  document.getElementById('cExpired').textContent = expiredCount;
+
+  // hero: soonest expiring (by expiresAt ascending), among non-deleted
+  const sorted = [...configs].sort((a,b)=>a.expiresAt-b.expiresAt);
+  const heroPanel = document.getElementById('heroPanel');
+  if(sorted.length === 0){
+    heroPanel.classList.add('is-empty');
+    document.getElementById('heroName').textContent = 'No configs yet';
+    document.getElementById('heroMeta').textContent = 'Add your first config to start tracking expiry';
+    document.getElementById('heroTimer').textContent = '--:--:--:--';
+    document.getElementById('heroTimer').className = 'hero-timer mono';
+    document.getElementById('heroTimerLabel').textContent = 'days · hours · min · sec';
+  }else{
+    heroPanel.classList.remove('is-empty');
+    const top = sorted[0];
+    const status = getStatus(top);
+    document.getElementById('heroName').textContent = top.label;
+    document.getElementById('heroMeta').textContent = `${top.telegram}${top.email ? ' · ' + top.email : ''}`;
+    const heroTimerEl = document.getElementById('heroTimer');
+    heroTimerEl.className = 'hero-timer mono' + (status==='warning' ? ' warning' : status==='expired' ? ' expired' : '');
+    heroTimerEl.dataset.expiresAt = top.expiresAt;
+    document.getElementById('heroTimerLabel').textContent = status === 'expired' ? 'this config has expired — deactivate it' : 'days : hours : min : sec';
+  }
+
+  // filter + search
+  let filtered = configs.filter(c=>{
+    const status = getStatus(c);
+    if(currentFilter !== 'all' && status !== currentFilter) return false;
+    if(searchTerm){
+      const hay = `${c.label} ${c.telegram} ${c.email}`.toLowerCase();
+      if(!hay.includes(searchTerm.toLowerCase())) return false;
+    }
+    return true;
+  });
+  filtered.sort((a,b)=>a.expiresAt-b.expiresAt);
+
+  const grid = document.getElementById('grid');
+  if(filtered.length === 0){
+    grid.innerHTML = `<div class="empty-state">
+      <div class="display">${configs.length === 0 ? 'Nothing here yet' : 'No configs match this view'}</div>
+      <div>${configs.length === 0 ? 'Click "Add Config" to create your first entry.' : 'Try a different filter or search term.'}</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(c=>{
+    const status = getStatus(c);
+    const badgeClass = status==='active' ? 'badge-active' : status==='warning' ? 'badge-warning' : 'badge-expired blink';
+    const badgeText = status==='active' ? 'Active' : status==='warning' ? 'Expiring' : 'Expired';
+    return `
+    <div class="card status-${status}" data-id="${c.id}">
+      <div class="card-top">
+        <div>
+          <div class="card-title">${escapeHtml(c.label)}</div>
+          <div class="card-buyer">✈ ${escapeHtml(c.telegram)}</div>
+        </div>
+        <span class="badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="timer-block">
+        <div>
+          <div class="timer-value mono timer-display" data-expires="${c.expiresAt}">--:--:--:--</div>
+          <div class="timer-sub timer-sub-display">calculating…</div>
+        </div>
+      </div>
+      <div class="detail-list">
+        ${c.email ? row('Email', c.email) : ''}
+        ${c.password ? row('Password', c.password) : ''}
+        ${row('Sub Link', c.sublink, true)}
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-ghost btn-sm" data-action="renew" data-id="${c.id}">Renew</button>
+        <button class="btn btn-ghost btn-sm" data-action="edit" data-id="${c.id}">Edit</button>
+        <button class="btn btn-danger btn-sm" data-action="delete" data-id="${c.id}">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  function row(key, val, isLink){
+    return `<div class="detail-row">
+      <span class="detail-key">${key}</span>
+      <span class="detail-val" title="${escapeHtml(val)}">${escapeHtml(val)}</span>
+      <button class="copy-btn" data-copy="${escapeHtml(val)}" data-copylabel="${key}" title="Copy ${key}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+    </div>`;
+  }
+
+  tickTimers(); // immediately populate timer text
+}
+
+// ---------- Ticking ----------
+function tickTimers(){
+  const now = Date.now();
+
+  // hero
+  const heroTimerEl = document.getElementById('heroTimer');
+  if(heroTimerEl.dataset.expiresAt){
+    const remaining = Number(heroTimerEl.dataset.expiresAt) - now;
+    const { text } = formatRemaining(remaining);
+    heroTimerEl.textContent = text;
+  }
+
+  // cards
+  document.querySelectorAll('.timer-display').forEach(el=>{
+    const expiresAt = Number(el.dataset.expires);
+    const remaining = expiresAt - now;
+    const { text, sub } = formatRemaining(remaining);
+    el.textContent = text;
+    el.className = 'timer-value mono timer-display' + (remaining <= 0 ? ' expired' : '');
+    const card = el.closest('.card');
+    if(card){
+      const totalDuration = (configs.find(c=>c.id===card.dataset.id) || {}).expiresAt - (configs.find(c=>c.id===card.dataset.id) || {}).createdAt;
+      const warnThreshold = Math.min(3*DAY_MS, totalDuration*0.15);
+      if(remaining <= 0) el.classList.add('expired');
+      else if(remaining <= warnThreshold) el.classList.add('warning');
+    }
+    const subEl = el.parentElement.querySelector('.timer-sub-display');
+    if(subEl) subEl.textContent = sub;
+  });
+}
+
+// Full re-render every 20s to keep statuses/badges/sort accurate; per-second tick just updates numbers.
+setInterval(tickTimers, 1000);
+setInterval(render, 20000);
+
+// ---------- Modal handling ----------
+const overlay = document.getElementById('overlay');
+const form = document.getElementById('configForm');
+
+function openModal(mode, cfg){
+  editingId = cfg ? cfg.id : null;
+  document.getElementById('modalTitle').textContent = mode==='edit' ? 'Edit Config' : 'Add Config';
+  document.getElementById('submitBtn').textContent = mode==='edit' ? 'Save Changes' : 'Save Config';
+  document.getElementById('editHint').style.display = mode==='edit' ? 'block' : 'none';
+  document.getElementById('f_label').value = cfg ? cfg.label : '';
+  document.getElementById('f_duration').value = cfg ? (( cfg.expiresAt - cfg.createdAt ) / DAY_MS).toString() : '30';
+  document.getElementById('f_telegram').value = cfg ? cfg.telegram : '';
+  document.getElementById('f_email').value = cfg ? cfg.email : '';
+  document.getElementById('f_password').value = cfg ? cfg.password : '';
+  document.getElementById('f_sublink').value = cfg ? cfg.sublink : '';
+  overlay.classList.add('open');
+  document.getElementById('f_label').focus();
+}
+
+function closeModal(){
+  overlay.classList.remove('open');
+  form.reset();
+  editingId = null;
+}
+
+document.getElementById('openAddModal').addEventListener('click', ()=> openModal('add', null));
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const label = document.getElementById('f_label').value.trim();
+  const durationDays = parseFloat(document.getElementById('f_duration').value);
+  const telegram = document.getElementById('f_telegram').value.trim();
+  const email = document.getElementById('f_email').value.trim();
+  const password = document.getElementById('f_password').value.trim();
+  const sublink = document.getElementById('f_sublink').value.trim();
+
+  if(!label || !telegram || !sublink || isNaN(durationDays) || durationDays <= 0){
+    toast('Please fill in all required fields');
+    return;
+  }
+
+  if(editingId){
+    const cfg = configs.find(c=>c.id===editingId);
+    if(cfg){
+      cfg.label = label;
+      cfg.telegram = telegram;
+      cfg.email = email;
+      cfg.password = password;
+      cfg.sublink = sublink;
+      cfg.expiresAt = cfg.createdAt + durationDays*DAY_MS;
+      await saveConfig(cfg);
+      toast('Config updated');
+    }
+  }else{
+    const now = Date.now();
+    const cfg = {
+      id: (crypto.randomUUID ? crypto.randomUUID() : 'id-' + now + '-' + Math.random().toString(16).slice(2)),
+      label, telegram, email, password, sublink,
+      createdAt: now,
+      expiresAt: now + durationDays*DAY_MS
+    };
+    configs.push(cfg);
+    await saveConfig(cfg);
+    toast('Config added');
+  }
+  closeModal();
+  render();
+});
+
+// ---------- Card actions (delegated) ----------
+document.getElementById('grid').addEventListener('click', async (e)=>{
+  const copyBtn = e.target.closest('.copy-btn');
+  if(copyBtn){
+    copyText(copyBtn.dataset.copy, copyBtn.dataset.copylabel);
+    return;
+  }
+  const actionBtn = e.target.closest('[data-action]');
+  if(!actionBtn) return;
+  const id = actionBtn.dataset.id;
+  const cfg = configs.find(c=>c.id===id);
+  if(!cfg) return;
+  const action = actionBtn.dataset.action;
+
+  if(action === 'edit'){
+    openModal('edit', cfg);
+  }else if(action === 'delete'){
+    if(confirm(`Delete "${cfg.label}"? This cannot be undone.`)){
+      configs = configs.filter(c=>c.id!==id);
+      await deleteConfigStorage(id);
+      toast('Config deleted');
+      render();
+    }
+  }else if(action === 'renew'){
+    const durationDays = (cfg.expiresAt - cfg.createdAt) / DAY_MS;
+    const input = prompt(`Renew "${cfg.label}" for how many days? (restarts the timer from now)`, durationDays.toFixed(0));
+    if(input === null) return;
+    const days = parseFloat(input);
+    if(isNaN(days) || days <= 0){ toast('Enter a valid number of days'); return; }
+    cfg.createdAt = Date.now();
+    cfg.expiresAt = cfg.createdAt + days*DAY_MS;
+    await saveConfig(cfg);
+    toast('Config renewed');
+    render();
+  }
+});
+
+// ---------- Filters & search ----------
+document.getElementById('filterTabs').addEventListener('click', (e)=>{
+  const tab = e.target.closest('.tab');
+  if(!tab) return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  currentFilter = tab.dataset.filter;
+  render();
+});
+
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  searchTerm = e.target.value;
+  render();
+});
+
+// ---------- Init ----------
+loadConfigs();
+</script>
+</body>
+</html>
